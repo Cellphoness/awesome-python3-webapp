@@ -51,6 +51,14 @@ def has_var_kw_arg(fn):
         if param.kind == inspect.Parameter.KEYWORD_ONLY:
             return True
 
+def get_required_kw_args(fn):
+    args = []
+    params = inspect.signature(fn).parameters
+    for name, param in params.items():
+        if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
+            args.append(name)
+    return tuple(args)
+
 def has_request_arg(fn):
     sig = inspect.signature(fn)
     params = sig.parameters
@@ -135,11 +143,10 @@ def add_static(app):
 def add_route2(app, fn):
     method = getattr(fn, '__method__', None)
     path = getattr(fn, '__path__', None)
-    # if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
-    #     fn = asyncio.coroutine(fn)
+    if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
+        fn = asyncio.coroutine(fn)
     logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
-    # fn_result = yield from RequestHandler(app, fn)
-    app.router.add_route(method, path, fn)
+    app.router.add_route(method, path, RequestHandler(app, fn))
 
 def add_routes(app, module_name):
     n = module_name.rfind('.')
