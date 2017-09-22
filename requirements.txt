@@ -1,3 +1,4 @@
 aiomysql==0.0.9
+aiopg==0.13.1
 aiohttp==2.2.5
 jinja2==2.9.6

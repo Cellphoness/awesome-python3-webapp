@@ -13,7 +13,9 @@ import orm
 import coroweb
 from coroweb import add_routes, add_static
 from handlers import cookie2user, COOKIE_NAME
-
+from config import configs
+import models
+from models import User, Blog, Comment
 def init_jinja2(app, **kw):
     logging.info('init jinja2...')
     options = dict(
@@ -92,6 +94,7 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
+                r['__user__'] = request.__user__
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
@@ -122,7 +125,7 @@ def datetime_filter(t):
 
 
 async def init(loop):
-    await orm.create_pool(loop=loop, user='www-data', password='www-data', db='awesome')
+    await orm.create_pool(loop=loop, host=configs.db.host, user=configs.db.user, password=configs.db.password, db=configs.db.database)
     app = web.Application(loop=loop, middlewares=[
         logger_factory, auth_factory, response_factory
     ])
@@ -132,6 +135,8 @@ async def init(loop):
     srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
     logging.info('server started at http://127.0.0.1:9000...')
     return srv
+
+print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
