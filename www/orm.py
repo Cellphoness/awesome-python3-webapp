@@ -8,7 +8,8 @@ import aiopg
 
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
-    logging.info('ARGS: %s' % args)
+    logging.info('ARGS:')
+    logging.info(args)
 
 async def create_pool(loop, **kw):
     logging.info('create database connection pool...')

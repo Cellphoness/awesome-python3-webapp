@@ -68,13 +68,15 @@ async def cookie2user(cookie_str):
     pass    
 
 @get('/')
-def blogs(request):
+async def blogs(request):
     summary = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    blogs = [
-        Blog(id='1', name='Test Blog', summary=summary, created_at=time.time()-120),
-        Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
-        Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200)
-    ]
+    # blogs = [
+    #     Blog(id='1', name='Test Blog', summary=summary, created_at=time.time()-120),
+    #     Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
+    #     Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200)
+    # ]
+    info = await api_blogs()
+    blogs = info.get('blogs', [])
     return {
         '__template__': 'blogs.html',
         'blogs': blogs
@@ -108,9 +110,9 @@ def manage_blogs(*, page='1'):
     }
 
 @get('/blog/{id}')
-def get_blog(id):
-    blog = yield from Blog.find(id)
-    comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
+async def get_blog(id):
+    blog = await Blog.find(id)
+    comments = await Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
     for c in comments:
         c.html_content = text2html(c.content)
     blog.html_content = markdown2.markdown(blog.content)
@@ -120,6 +122,15 @@ def get_blog(id):
         'comments': comments
     }
 
+@get('/manage/blogs/edit/{id}')
+def api_blogs_edit_by_id(id):
+    return {
+        '__template__': 'manage_blog_edit.html',
+        'id': id,
+        'action': '/api/blogs'
+    }
+
+
 @get('/manage/blogs/create')
 def manage_create_blog():
     return {
@@ -127,6 +138,18 @@ def manage_create_blog():
         'id': '',
         'action': '/api/blogs'
     }
+
+@get('/api/blogs/{id}')
+async def api_blogs_by_id(id):
+    blog = await Blog.find(id)
+    return blog
+
+@post('/api/blogs/{id}/delete')
+async def api_blogs_delete_id(id):
+    blog = Blog(id=id)
+    if blog:
+        await blog.remove()
+    return blog
 
 @get('/api/blogs')
 async def api_blogs(*, page='1'):
@@ -140,7 +163,7 @@ async def api_blogs(*, page='1'):
     return dict(page=p, blogs=blogs)
 
 @post('/api/blogs')
-async def api_create_blog(request, *, name, summary, content):
+async def api_create_blog(request, *, id = None, user_id = None, user_name = None, user_image = None, created_at = None, name, summary, content):
     check_admin(request)
     if not name or not name.strip():
         raise APIValueError('name', 'name cannot be empty.')
@@ -148,8 +171,13 @@ async def api_create_blog(request, *, name, summary, content):
         raise APIValueError('summary', 'summary cannot be empty.')
     if not content or not content.strip():
         raise APIValueError('content', 'content cannot be empty.')
-    blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
-    await blog.save()
+    if id != None:
+        blog = Blog(id = id, user_id = user_id, user_name = user_name, user_image = user_image, created_at = created_at, name=name.strip(), summary=summary.strip(), content=content.strip())
+        await blog.update()
+        pass
+    else:
+        blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
+        await blog.save()
     return blog
 
 @post('/api/authenticate')
