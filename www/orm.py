@@ -4,12 +4,54 @@
 __author__ = 'Michael Liao'
 
 import asyncio, logging
-
-import aiomysql
+import aiopg
 
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
+    logging.info('ARGS:')
+    logging.info(args)
 
+async def create_pool(loop, **kw):
+    logging.info('create database connection pool...')
+    dsn = 'dbname=%s user=%s password=%s host=%s port=%s' %(kw['db'], kw['user'], kw['password'], kw['host'], kw.get('port', 5432))
+    global __pool
+    __pool = await aiopg.create_pool(dsn)
+
+async def select(clss, sql, args, size=None):
+    log(sql, args)
+    global __pool
+    async with __pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(sql.replace('?', '%s'), args or ())
+            ret = []
+            async for row in cur:
+                ret.append(dict(zip(clss.__maplist__, row)))
+            if size:
+                rs = ret[:size]
+            else:
+                rs = ret
+        logging.info('rows returned: %s' % len(rs))
+        return rs
+
+async def execute(sql, args, autocommit=True):
+    log(sql)
+    async with __pool.acquire() as conn:
+        if not autocommit:
+            await conn.begin()
+        try:
+            async with conn.cursor() as cur:
+                await cur.execute(sql.replace('?', '%s'), args)
+                affected = cur.rowcount
+            if not autocommit:
+                await conn.commit()
+        except BaseException as e:
+            if not autocommit:
+                await conn.rollback()
+            raise
+        return affected
+
+'''
+import aiomysql
 async def create_pool(loop, **kw):
     logging.info('create database connection pool...')
     global __pool
@@ -55,7 +97,7 @@ async def execute(sql, args, autocommit=True):
                 await conn.rollback()
             raise
         return affected
-
+'''
 def create_args_string(num):
     L = []
     for n in range(num):
@@ -107,9 +149,11 @@ class ModelMetaclass(type):
         logging.info('found model: %s (table: %s)' % (name, tableName))
         mappings = dict()
         fields = []
+        maplist = []
         primaryKey = None
         for k, v in attrs.items():
             if isinstance(v, Field):
+                maplist.append(k)
                 logging.info('  found mapping: %s ==> %s' % (k, v))
                 mappings[k] = v
                 if v.primary_key:
@@ -123,15 +167,27 @@ class ModelMetaclass(type):
             raise StandardError('Primary key not found.')
         for k in mappings.keys():
             attrs.pop(k)
-        escaped_fields = list(map(lambda f: '`%s`' % f, fields))
+        # escaped_fields = list(map(lambda f: '`%s`' % f, fields))
+        # attrs['__mappings__'] = mappings # 保存属性和列的映射关系
+        # attrs['__table__'] = tableName
+        # attrs['__primary_key__'] = primaryKey # 主键属性名
+        # attrs['__fields__'] = fields # 除主键外的属性名
+        # attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ', '.join(escaped_fields), tableName)
+        # attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        # attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
+        # attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
+        escaped_fields = list(map(lambda f: '%s' % f, fields))
+        print('__maplist__:')
+        print(maplist)
+        attrs['__maplist__'] = maplist
         attrs['__mappings__'] = mappings # 保存属性和列的映射关系
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey # 主键属性名
         attrs['__fields__'] = fields # 除主键外的属性名
-        attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ', '.join(escaped_fields), tableName)
-        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
-        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
-        attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
+        attrs['__select__'] = 'select %s, %s from %s' % (primaryKey, ', '.join(escaped_fields), tableName)
+        attrs['__insert__'] = 'insert into %s (%s, %s) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__update__'] = 'update %s set %s where %s=?' % (tableName, ', '.join(map(lambda f: '%s=?' % (mappings.get(f).name or f), fields)), primaryKey)
+        attrs['__delete__'] = 'delete from %s where %s=?' % (tableName, primaryKey)
         return type.__new__(cls, name, bases, attrs)
 
 class Model(dict, metaclass=ModelMetaclass):
@@ -176,34 +232,40 @@ class Model(dict, metaclass=ModelMetaclass):
             sql.append(orderBy)
         limit = kw.get('limit', None)
         if limit is not None:
-            sql.append('limit')
+            # sql.append('limit')
             if isinstance(limit, int):
+                sql.append('limit')
                 sql.append('?')
                 args.append(limit)
             elif isinstance(limit, tuple) and len(limit) == 2:
-                sql.append('?, ?')
+                # sql.append('?, ?')
+                sql.append('offset ? limit ?')
                 args.extend(limit)
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
-        rs = await select(' '.join(sql), args)
+        rs = await select(cls, ' '.join(sql), args)
         return [cls(**r) for r in rs]
 
     @classmethod
     async def findNumber(cls, selectField, where=None, args=None):
         ' find number by select and where. '
-        sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
+        sql = ['select %s _num_ from %s' % (selectField, cls.__table__)]
+        # sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)
-        rs = await select(' '.join(sql), args, 1)
+        rs = await select(cls, ' '.join(sql), args, 1)
         if len(rs) == 0:
             return None
-        return rs[0]['_num_']
+        print(rs)
+        return rs[0]['id']
+        # return rs[0]['_num_']
 
     @classmethod
     async def find(cls, pk):
         ' find object by primary key. '
-        rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
+        # rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
+        rs = await select(cls, '%s where %s=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
         if len(rs) == 0:
             return None
         return cls(**rs[0])
