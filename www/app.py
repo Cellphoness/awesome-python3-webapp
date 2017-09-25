@@ -132,7 +132,7 @@ async def init(loop):
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
-    srv = await loop.create_server(app.make_handler(), host=configs.app.host, port=configs.app.port)
+    srv = await loop.create_server(app.make_handler(), configs.app.host, configs.app.port)
     # logging.info('server started at http://127.0.0.1:9000...')
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv

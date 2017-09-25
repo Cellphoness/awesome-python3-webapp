@@ -19,10 +19,10 @@ configs = {
         'user': 'viasdsvtjkadjb',
         'password': '22840fc1bda7eb1c4bd674825d1bb0433cccb1086620b09877d54e072d800693',
         'database': 'd9ptqd1ujsn6qo',
-        'port': '5432'
-    }
+        'port': 5432
+    },
     'app': {
-        'host': '0.0.0.0',
+        'host': '127.0.0.1',
         'port': '8080'
     }
 }

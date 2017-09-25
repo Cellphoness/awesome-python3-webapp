@@ -10,5 +10,9 @@ configs = {
     },
     'session': {
         'secret': 'AwEsOmE'
+    },
+    'app': {
+        'host': '127.0.0.1',
+        'port': '9000'
     }
 }
