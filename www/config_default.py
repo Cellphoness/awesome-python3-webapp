@@ -12,7 +12,7 @@ configs = {
         'secret': 'AwEsOmE'
     },
     'app': {
-        'host': '0.0.0.0',
+        'host': 'cryptic-falls-97990.herokuapp.com',
         'port': '8080'
     }
 }
