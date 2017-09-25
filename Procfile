@@ -1,1 +1,1 @@
-worker: gunicorn --pythonpath 'www' app -c gunicorn.conf
+web: gunicorn --pythonpath 'www' app -c gunicorn.conf
