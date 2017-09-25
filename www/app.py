@@ -132,14 +132,14 @@ async def init(loop):
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
-    srv = await loop.create_server(app.make_handler(), host='0.0.0.0', port=8080, reuse_address='0.0.0.0', reuse_port=8080)
+    srv = await loop.create_server(app.make_handler(), host='0.0.0.0', port=5432, reuse_address='0.0.0.0', reuse_port=5432)
     # logging.info('server started at http://127.0.0.1:9000...')
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv
 
-print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(init(loop))
-loop.run_forever()
+if __name__ == "__main__":
+    print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(init(loop))
+    loop.run_forever()
 
