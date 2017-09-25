@@ -141,4 +141,3 @@ print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__ma
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
 loop.run_forever()
-
