@@ -137,9 +137,8 @@ async def init(loop):
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv
 
-if __name__ == "__main__":
-    print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(init(loop))
-    loop.run_forever()
+print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
+loop = asyncio.get_event_loop()
+loop.run_until_complete(init(loop))
+loop.run_forever()
 
