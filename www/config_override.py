@@ -22,7 +22,7 @@ configs = {
         'port': 5432
     },
     'app': {
-        'host': 'cryptic-falls-97990.herokuapp.com',
+        'host': '127.0.0.1',
         'port': '8080'
     }
 }
