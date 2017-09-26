@@ -4,6 +4,7 @@
 import logging; logging.basicConfig(level=logging.INFO)
 
 import socket
+import socketserver
 import asyncio, os, json, time
 from datetime import datetime
 
@@ -139,11 +140,12 @@ async def init(loop):
     sock.settimeout(configs.app.timeout)  
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
     sock.bind((configs.app.host, configs.app.port))
-    sock.listen(configs.app.listen)
+    # sock.listen(configs.app.listen)
     srv = await loop.create_server(app.make_handler(), sock=sock)  
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv
 
+socketserver.TCPServer.allow_reuse_address = True
 print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__mappings__, Comment.__mappings__)
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
