@@ -3,6 +3,7 @@
 
 import logging; logging.basicConfig(level=logging.INFO)
 
+import socket
 import asyncio, os, json, time
 from datetime import datetime
 
@@ -132,8 +133,14 @@ async def init(loop):
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
-    srv = await loop.create_server(app.make_handler(), host=configs.app.host, port=configs.app.port, reuse_address=configs.app.host, reuse_port=configs.app.port)
+    # srv = await loop.create_server(app.make_handler(), host=configs.app.host, port=configs.app.port, reuse_address=configs.app.host, reuse_port=configs.app.port)
     # logging.info('server started at http://127.0.0.1:9000...')
+    sock = socket.socket()#socket.AF_INET, socket.SOCK_DGRAM    
+    sock.settimeout(configs.app.timeout)  
+    sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    sock.bind((configs.app.host, configs.app.port))
+    sock.listen(configs.app.listen)
+    srv = await loop.create_server(app.make_handler(), sock=sock)  
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv
 
