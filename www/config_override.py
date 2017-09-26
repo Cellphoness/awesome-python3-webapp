@@ -14,9 +14,8 @@ configs = {
     #     'database': 'friends',
     #     'port': '5432'
     # }
-    # ec2-54-221-220-82.compute-1.amazonaws.com
     'db': {
-        'host': 'localhost',
+        'host': 'ec2-54-221-220-82.compute-1.amazonaws.com',
         'user': 'viasdsvtjkadjb',
         'password': '22840fc1bda7eb1c4bd674825d1bb0433cccb1086620b09877d54e072d800693',
         'database': 'd9ptqd1ujsn6qo',
