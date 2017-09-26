@@ -140,7 +140,7 @@ async def init(loop):
     sock.settimeout(configs.app.timeout)  
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
     sock.bind((configs.app.host, configs.app.port))
-    # sock.listen(configs.app.listen)
+    sock.listen(configs.app.listen)
     srv = await loop.create_server(app.make_handler(), sock=sock)  
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
     return srv
