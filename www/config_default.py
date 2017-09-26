@@ -14,7 +14,7 @@ configs = {
     'app': {
         'timeout': 30,
         'listen': 5,
-        'host': '0.0.0.0',
+        'host': '127.0.0.0',
         'port': 8081
     }
 }
