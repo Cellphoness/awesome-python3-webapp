@@ -21,8 +21,8 @@ configs = {
         'database': 'd9ptqd1ujsn6qo',
         'port': 5432
     },
-    'app': {
-        'host': '',
-        'port': 8088
-    }
+    # 'app': {
+    #     'host': '0.0.0.0',
+    #     'port': 10011
+    # }
 }
