@@ -125,7 +125,7 @@ def datetime_filter(t):
     dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
-
+'''
 async def init(loop):
     await orm.create_pool(loop=loop, host=configs.db.host, user=configs.db.user, password=configs.db.password, db=configs.db.database)
     app = web.Application(loop=loop, middlewares=[
@@ -150,3 +150,30 @@ print('user_attr_%r blogs_attr_%r comment_attr_%r', User.__mappings__, Blog.__ma
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
 loop.run_forever()
+'''
+
+#dis
+async def init(app):
+    await orm.create_pool(loop=None, host=configs.db.host, user=configs.db.user, password=configs.db.password, db=configs.db.database)
+    init_jinja2(app, filters=dict(datetime=datetime_filter))
+    add_routes(app, 'handlers')
+    add_static(app)
+    sock = socket.socket()#socket.AF_INET, socket.SOCK_DGRAM    
+    sock.settimeout(configs.app.timeout)  
+    sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    sock.bind((configs.app.host, configs.app.port))
+    sock.listen(configs.app.listen)
+    srv = await loop.create_server(app.make_handler(), sock=sock)  
+    logging.info('already loaded')
+    return app
+
+socketserver.TCPServer.allow_reuse_address = True
+loop = asyncio.get_event_loop()
+app = web.Application(loop=loop, middlewares=[
+        logger_factory, auth_factory, response_factory
+    ])
+loop.run_until_complete(init(app))
+loop.run_forever()
+application = app
+
+

@@ -1,1 +1,1 @@
-web: gunicorn -b 127.0.0.1:10033 -b [::1]:10033 --pythonpath 'www' app 
+web: gunicorn --pythonpath 'www' app:application
