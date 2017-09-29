@@ -12,9 +12,9 @@ configs = {
         'secret': 'AwEsOmE'
     },
     'app': {
-        'timeout': 20,
+        'timeout': 30,
         'listen': 5,
-        'host': '47.90.123.26',
-        'port': 8000
+        'host': '127.0.0.1',
+        'port': 9999
     }
 }

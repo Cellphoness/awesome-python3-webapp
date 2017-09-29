@@ -1,1 +1,1 @@
-web: python3 app.py
+web: gunicorn -w 4 -b 47.90.123.26:8888 app 
