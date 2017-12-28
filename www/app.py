@@ -125,7 +125,6 @@ def datetime_filter(t):
     dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
-
 async def init(loop):
     await orm.create_pool(loop=loop, host=configs.db.host, user=configs.db.user, password=configs.db.password, db=configs.db.database)
     app = web.Application(loop=loop, middlewares=[
@@ -136,10 +135,11 @@ async def init(loop):
     add_static(app)
     # srv = await loop.create_server(app.make_handler(), host=configs.app.host, port=configs.app.port, reuse_address=configs.app.host, reuse_port=configs.app.port)
     # logging.info('server started at http://127.0.0.1:9000...')
+    port = int(os.getenv('PORT', 5000))
     sock = socket.socket()#socket.AF_INET, socket.SOCK_DGRAM    
     sock.settimeout(configs.app.timeout)  
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-    sock.bind((configs.app.host, configs.app.port))
+    sock.bind((configs.app.host, port))
     sock.listen(configs.app.listen)
     srv = await loop.create_server(app.make_handler(), sock=sock)  
     logging.info('server started at https://cryptic-falls-97990.herokuapp.com')
@@ -151,4 +151,15 @@ loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
 loop.run_forever()
 
+# async def web_app():
+#     await orm.create_pool(loop=None, host=configs.db.host, user=configs.db.user, password=configs.db.password, db=configs.db.database)
+#     app = web.Application(middlewares=[
+#         logger_factory, auth_factory, response_factory
+#     ])
+#     init_jinja2(app, filters=dict(datetime=datetime_filter))
+#     add_routes(app, 'handlers')
+#     add_static(app)
+#     web.run_app(app, host='0.0.0.0', port=8080)
+#     return app
 
+    

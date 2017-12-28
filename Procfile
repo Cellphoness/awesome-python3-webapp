@@ -1,1 +1,1 @@
-web: gunicorn -w 4 -b 47.90.123.26:8888 app 
+web: gunicorn --pythonpath 'www' app
