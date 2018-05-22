@@ -5,7 +5,7 @@ __author__ = 'Michael Liao'
 
 ' url handlers '
 
-import re, time, json, logging, hashlib, base64, asyncio
+import re, time, json, logging, hashlib, base64, asyncio, os
 import markdown2
 from aiohttp import web
 from coroweb import get, post
@@ -202,6 +202,33 @@ async def api_create_blog(request, *, id = None, user_id = None, user_name = Non
         await blog.save()
     return blog
 
+@post('/store/img')
+async def store_mp3_handler(request):
+
+    reader = await request.multipart()
+
+    # /!\ Don't forget to validate your inputs /!\
+
+    # reader.next() will `yield` the fields of your form
+
+    field = await reader.next()
+    logging.info(field.name)
+    assert field.name == 'file'
+    filename = field.filename
+    logging.info(filename)
+    # You cannot rely on Content-Length if transfer is chunked.
+    size = 0
+    time_fileName = str(int(time.time())) + '_' + filename
+    with open(os.path.join('static/img/', time_fileName), 'wb') as f:
+        while True:
+            chunk = await field.read_chunk()  # 8192 bytes by default.
+            if not chunk:
+                break
+            size += len(chunk)
+            f.write(chunk)
+
+    return dict(text='{} sized of {} successfully stored'.format(filename, size), src=('/static/img/'+time_fileName))
+
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
     if not email:
@@ -239,7 +266,7 @@ _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$'
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @post('/api/users')
-async def api_register_user(*, email, name, passwd):
+async def api_register_user(*, email, name, passwd, imgUrl=''):
     if not name or not name.strip():
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
@@ -251,7 +278,10 @@ async def api_register_user(*, email, name, passwd):
         raise APIError('register:fail', 'email', 'Eamil is already in use')
     uid = next_id()
     sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), admin=True, image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    image = 'http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest()
+    if imgUrl.strip() :
+        image = imgUrl
+    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), admin=True, image=image)
     await user.save()
     # make session cookie:
     r = web.Response()
