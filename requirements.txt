@@ -3,3 +3,4 @@ aiopg==0.13.1
 aiohttp==2.2.5
 jinja2==2.9.6
 gunicorn==19.6.0
+watchdog==0.8.3
